@@ -36,7 +36,7 @@ cp -r ${glm_folder}/glm ./include/
 
 # STB
 ## Download STB from https://github.com/nothings/stb and unzip to ${stb_folder}
-# Make include folder
+## Make include folder
 mkdir ./include/stb
 ## Copy libraries
 cp ${stb_folder}/stb_image.h ./include/
@@ -55,6 +55,7 @@ cp ${assimp_build_folder}/bin/*.dll ./
 # Compile & Build
 ## -O3 optimize for the faster execution
 g++ -c ${source_file} -o ${object_file} -I ./include -O3
+## WARNING: ${output_file} must be at the same folder with ./shader and ./asset
 g++ ${object_file} ./include/glad/glad.o -o ${output_file} -L ./library/ -lmingw32 -lglfw3 -lopengl32 -lgdi32 -luser32 -lassimp
 ```
 
