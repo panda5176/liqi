@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# Environments
+.editorconfig
+
+# Include
+include/assimp
+include/glad
+include/GLFW
+include/glm
+include/KHR
+include/stb
+!include/liqi
+
+# Asset
+asset/
