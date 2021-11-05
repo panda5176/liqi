@@ -35,13 +35,9 @@
 .editorconfig
 
 # Include
-include/assimp
-include/glad
-include/GLFW
-include/glm
-include/KHR
-include/stb
+include/*
 !include/liqi
 
 # Asset
-asset/
+asset/*
+!asset/README.md
