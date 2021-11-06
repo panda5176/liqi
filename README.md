@@ -6,6 +6,7 @@
 - [GLM](https://github.com/g-truc/glm): OpenGL Mathematics
 - [STB](https://github.com/nothings/stb): Single-file public domain libraries for C/C++
 - [ASSIMP](http://assimp.org/index.php/downloads): The Open-Asset-Importer-Lib
+- [Dear ImGui](https://github.com/ocornut/imgui): Bloat-free Graphical User interface for C++ with minimal dependencies
 
 ## How to compile
 ```bash
@@ -52,11 +53,24 @@ cp ${assimp_build_folder}/include/* ./include/
 cp ${assimp_build_folder}/lib/* ./library/
 cp ${assimp_build_folder}/bin/*.dll ./
 
+# Dear ImGui
+## Download Dear ImGui from https://github.com/ocornut/imgui/releases/ and unzip to ${imgui_folder}
+## Make include folder
+mkdir ./include/imgui
+## Copy libraries
+## WARNING: Exclude `${imgui_folder}/imgui_demo.cpp`
+cp ${imgui_folder}/*.h ${imgui_folder}/*.cpp ./include/imgui/
+cp ${imgui_folder}/backends/*_glfw* ${imgui_folder}/backends/*_opengl3* ./include/imgui/
+## Compile
+cd ./include/imgui
+g++ -c ./*.c -I ../
+cd ../..
+
 # Compile & Build
 ## -O3 optimize for the faster execution
 g++ -c ${source_file} -o ${object_file} -I ./include -O3
 ## WARNING: ${output_file} must be at the same folder with ./shader and ./asset
-g++ ${object_file} ./include/glad/glad.o -o ${output_file} -L ./library/ -lmingw32 -lglfw3 -lopengl32 -lgdi32 -luser32 -lassimp
+g++ ${object_file} ./include/glad/glad.o ./include/imgui/*.o -o ${output_file} -L ./library/ -lmingw32 -lglfw3 -lopengl32 -lgdi32 -luser32 -lassimp
 ```
 
 ## Examples in `./source/`

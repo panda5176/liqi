@@ -33,6 +33,7 @@
 
 # Environments
 .editorconfig
+imgui.ini
 
 # Include
 include/*

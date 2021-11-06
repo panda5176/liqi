@@ -1,8 +1,9 @@
+#include <liqi/main.h>
 #include <liqi/model.h>
 #include <liqi/shader.h>
-#include <liqi/window.h>
 
 const char* TITLE = "LOGL";
+const char* FONT_FILE_PATH = "asset/D2Coding.ttf";
 
 const char* OBJ_VERTEX_SHADER_FILE_PATH = "shader/logl_obj.vert.glsl";
 const char* OBJ_FRAGMENT_SHADER_FILE_PATH = "shader/logl_obj.frag.glsl";
@@ -83,7 +84,7 @@ glm::vec3 POINT_LIGHT_POSITIONS[] = {
 
 int main(const int argc, const char* argv[]) {
   // Create window
-  liqi::Create(TITLE);
+  liqi::Create(TITLE, FONT_FILE_PATH);
 
   // Build shaders
   liqi::Shader obj_shader, subj_shader;

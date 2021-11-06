@@ -26,6 +26,11 @@
 
 #include <assimp/Importer.hpp>
 
+// imgui
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
+
 // standard
 #include <fstream>
 #include <iostream>
@@ -40,12 +45,19 @@ namespace private_ {
 // Window
 GLFWwindow* window_ = nullptr;
 unsigned int window_width_ = 1600, window_height_ = 900;
+bool is_first_frame_ = true;
+bool do_show_option_window_ = false;
+ImGuiIO option_io_ = ImGuiIO{};
 
 // Cursor
 bool do_initialize_cursor_ = true;
 float cursor_last_x_ = window_width_ / 2.0f,
       cursor_last_y_ = window_height_ / 2.0f;
 float sensitivity_ = 0.1f;
+float cursor_before_option_x_ = 0.0f, cursor_before_option_y_ = 0.0f;
+
+// Key
+bool had_escape_key_pressed_ = false, had_escape_key_released_ = true;
 
 // Camera
 float yaw_ = -90.0f, pitch_ = 0.0f;
@@ -69,6 +81,8 @@ void FramebufferSizeCallback_(GLFWwindow* window, const int new_window_width,
                               const int new_window_height) {
   // Set window size
   glViewport(0, 0, new_window_width, new_window_height);
+  private_::window_width_ = new_window_width;
+  private_::window_height_ = new_window_height;
 }
 
 void CursorPosCallback_(GLFWwindow* window, const double cursor_x,
@@ -134,10 +148,65 @@ void ProcessInput_(const float cam_speed) {
         glm::normalize(glm::cross(private_::cam_front_, private_::cam_up_));
   cam_pos = private_::cam_pos_;
 }
+
+void ExitOptionWindow_() {
+  // Exit option window
+  glfwSetCursorPos(private_::window_, private_::cursor_before_option_x_,
+                   private_::cursor_before_option_y_);
+  glfwSetInputMode(private_::window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(private_::window_, private_::CursorPosCallback_);
+  glfwSetScrollCallback(private_::window_, private_::ScrollCallback_);
+  private_::do_show_option_window_ = false;
+}
+
+int SetOptionWindow_() {
+  // Set option window
+  ImGui::Begin("Options");
+  if (ImGui::Button("Exit Options")) {
+    ExitOptionWindow_();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Exit Program")) {
+    glfwSetWindowShouldClose(private_::window_, true);
+    return !glfwWindowShouldClose(private_::window_);
+  }
+  ImGui::SliderFloat("Camera speed", &private_::cam_speed_unit_, 0.0f, 10.0f,
+                     "%.1f", ImGuiSliderFlags_AlwaysClamp);
+  ImGui::End();
+  return 1;
+}
+
+void ControlOptionWindow_() {
+  // Control option window when escape key is pressured
+  if (private_::had_escape_key_pressed_ &&
+      glfwGetKey(private_::window_, GLFW_KEY_ESCAPE) == GLFW_RELEASE) {
+    private_::had_escape_key_released_ = true;
+    private_::had_escape_key_pressed_ = false;
+  }
+
+  if (private_::had_escape_key_released_ &&
+      glfwGetKey(private_::window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    private_::had_escape_key_pressed_ = true;
+    private_::had_escape_key_released_ = false;
+
+    if (private_::do_show_option_window_) {
+      ExitOptionWindow_();
+    } else {
+      private_::cursor_before_option_x_ = private_::cursor_last_x_;
+      private_::cursor_before_option_y_ = private_::cursor_last_y_;
+      glfwSetInputMode(private_::window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      glfwSetCursorPosCallback(private_::window_, NULL);
+      glfwSetScrollCallback(private_::window_, NULL);
+      glfwSetCursorPos(private_::window_, private_::window_width_ / 2.0,
+                       private_::window_height_ / 2.0);
+      private_::do_show_option_window_ = true;
+    }
+  }
+}
 }  // namespace private_
 
 // Public ======================================================================
-void Create(const char* title) {
+void Create(const char* title, const char* font_file_path) {
   // Create window
   // Initialize GLFW
   glfwInit();
@@ -152,6 +221,20 @@ void Create(const char* title) {
   private_::window_ = glfwCreateWindow(
       private_::window_width_, private_::window_height_, title, NULL, NULL);
   glfwMakeContextCurrent(private_::window_);
+
+  // Set option window
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  private_::option_io_ = ImGui::GetIO();
+  (void)private_::option_io_;
+  private_::option_io_.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  private_::option_io_.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+  ImGui::StyleColorsDark();
+  ImGui_ImplGlfw_InitForOpenGL(private_::window_, true);
+  ImGui_ImplOpenGL3_Init("#version 330");
+  ImFont* option_font =
+      private_::option_io_.Fonts->AddFontFromFileTTF(font_file_path, 18.0f);
+  if (!option_font) throw 1;
 
   // Initialize GLAD, after window setting
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -174,25 +257,36 @@ void Create(const char* title) {
   stbi_set_flip_vertically_on_load(true);
 }
 
-bool Render() {  // Key input processing
-  // Swap to rendered color buffers
-  glfwSwapBuffers(private_::window_);
+bool Render() {
+  if (!private_::is_first_frame_) {
+    // Start option frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
-  // Check all occured events and update window
-  glfwPollEvents();
+    // Show option window
+    if (private_::do_show_option_window_) {
+      if (!private_::SetOptionWindow_())
+        return !glfwWindowShouldClose(private_::window_);
+    }
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-  // Close window when escape key is pressed
-  if (glfwGetKey(private_::window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-    glfwSetWindowShouldClose(private_::window_, true);
-    return !glfwWindowShouldClose(private_::window_);
+    // Swap to rendered color buffers
+    glfwSwapBuffers(private_::window_);
+
+    // Check all occured events and update window
+    glfwPollEvents();
   }
+  private_::is_first_frame_ = false;
+  private_::ControlOptionWindow_();
 
   // Process input with delta time
   private_::current_frame_ = glfwGetTime();
   private_::delta_time_ = private_::current_frame_ - private_::last_frame_;
   private_::last_frame_ = private_::current_frame_;
   const float cam_speed = private_::cam_speed_unit_ * private_::delta_time_;
-  private_::ProcessInput_(cam_speed);
+  if (!private_::do_show_option_window_) private_::ProcessInput_(cam_speed);
 
   // Initialize color at each frame
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -210,7 +304,12 @@ bool Render() {  // Key input processing
   return !glfwWindowShouldClose(private_::window_);
 }
 
-void Destroy() { glfwTerminate(); }
+void Destroy() {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  glfwTerminate();
+}
 }  // namespace liqi
 
 #endif  // LIQI_WINDOW_H_
