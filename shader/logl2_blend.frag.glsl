@@ -11,6 +11,11 @@ struct PhongModel {
   vec3 diffuse;
   vec3 specular;
 };
+struct UpdatedPhongModel {
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+};
 struct AttnConst {
   float constant;
   float linear;
@@ -52,26 +57,27 @@ uniform DirLight DIRLIGHT;
 uniform PointLight POINTLIGHTS[NPOINTLIGHTS];
 uniform SpotLight SPOTLIGHT;
 
-PhongModel UpdatePhongModel(PhongModel phongModel, vec3 unitNormal,
+UpdatedPhongModel UpdatePhongModel(PhongModel phongModel, vec3 unitNormal,
                             vec3 viewDir, vec3 lightDir);
-vec3 CalcDirLight(DirLight dirLight, vec3 unitNormal, vec3 viewDir);
-vec3 CalcPointLight(PointLight pointLight, vec3 unitNormal, vec3 viewDir);
-vec3 CalcSpotLight(SpotLight spotLight, vec3 unitNormal, vec3 viewDir);
+vec4 CalcDirLight(DirLight dirLight, vec3 unitNormal, vec3 viewDir);
+vec4 CalcPointLight(PointLight pointLight, vec3 unitNormal, vec3 viewDir);
+vec4 CalcSpotLight(SpotLight spotLight, vec3 unitNormal, vec3 viewDir);
 
 void main() {
   vec3 unitNormal = normalize(NORMAL);
   vec3 viewDir = normalize(CAMPOS - FRAGPOS);
 
-  vec3 shadedRGB;
+  vec4 shadedRGB;
   shadedRGB += CalcDirLight(DIRLIGHT, unitNormal, viewDir);
   for (int idx = 0; idx < NPOINTLIGHTS; idx++)
     shadedRGB += CalcPointLight(POINTLIGHTS[idx], unitNormal, viewDir);
   shadedRGB += CalcSpotLight(SPOTLIGHT, unitNormal, viewDir);
 
-  FRAGCOLOR = vec4(shadedRGB, 1.0);
+  if(shadedRGB.a < 1.0) discard;
+  FRAGCOLOR = shadedRGB;
 }
 
-PhongModel UpdatePhongModel(PhongModel phongModel, vec3 unitNormal,
+UpdatedPhongModel UpdatePhongModel(PhongModel phongModel, vec3 unitNormal,
                             vec3 viewDir, vec3 lightDir) {
   // Ambient lighting
   float ambientStrength = 1.0;
@@ -86,36 +92,38 @@ PhongModel UpdatePhongModel(PhongModel phongModel, vec3 unitNormal,
 
   // Light mapping with texture
   // ambientMap == diffuseMap
-  vec3 diffuseMap = vec3(texture(MATERIAL.diffuse, TEXCOORD));
-  vec3 specularMap = vec3(texture(MATERIAL.specular, TEXCOORD));
+  vec4 diffuseMap = vec4(texture(MATERIAL.diffuse, TEXCOORD));
+  vec4 specularMap = vec4(texture(MATERIAL.specular, TEXCOORD));
 
   // Phong modeling
-  vec3 ambient = diffuseMap * phongModel.ambient * ambientStrength;
-  vec3 diffuse = diffuseMap * phongModel.diffuse * diffuseStrength;
-  vec3 specular = specularMap * phongModel.specular * specularStrength;
-  PhongModel updatedPhongModel = PhongModel(ambient, diffuse, specular);
+  vec4 ambient = diffuseMap * vec4(phongModel.ambient, 1.0) * ambientStrength;
+  vec4 diffuse = diffuseMap * vec4(phongModel.diffuse, 1.0) * diffuseStrength;
+  vec4 specular = specularMap * vec4(phongModel.specular, 1.0) *
+                  specularStrength;
+  UpdatedPhongModel updatedPhongModel = UpdatedPhongModel(ambient, diffuse,
+                                                          specular);
 
   return updatedPhongModel;
 }
 
-vec3 CalcDirLight(DirLight dirLight, vec3 unitNormal, vec3 viewDir) {
+vec4 CalcDirLight(DirLight dirLight, vec3 unitNormal, vec3 viewDir) {
   // Phong modeling
   vec3 lightDir = normalize(-dirLight.direction);
   PhongModel phongModel = PhongModel(dirLight.ambient, dirLight.diffuse,
                                      dirLight.specular);
-  PhongModel updatedPhongModel = UpdatePhongModel(phongModel, unitNormal,
+  UpdatedPhongModel updatedPhongModel = UpdatePhongModel(phongModel, unitNormal,
                                                   viewDir, lightDir);
-  vec3 shadedRGB = updatedPhongModel.ambient + updatedPhongModel.diffuse +
+  vec4 shadedRGB = updatedPhongModel.ambient + updatedPhongModel.diffuse +
                    updatedPhongModel.specular;
   return shadedRGB;
 }
 
-vec3 CalcPointLight(PointLight pointLight, vec3 unitNormal, vec3 viewDir) {
+vec4 CalcPointLight(PointLight pointLight, vec3 unitNormal, vec3 viewDir) {
   // Phong modeling
   vec3 lightDir = normalize(pointLight.position - FRAGPOS);
   PhongModel phongModel = PhongModel(pointLight.ambient, pointLight.diffuse,
                                      pointLight.specular);
-  PhongModel updatedPhongModel = UpdatePhongModel(phongModel, unitNormal,
+  UpdatedPhongModel updatedPhongModel = UpdatePhongModel(phongModel, unitNormal,
                                                   viewDir, lightDir);
 
   // Light attenuation
@@ -124,17 +132,17 @@ vec3 CalcPointLight(PointLight pointLight, vec3 unitNormal, vec3 viewDir) {
                              lightDist + ATTNCONST.quadratic * pow(lightDist,
                                                                     2));
 
-  vec3 shadedRGB = (updatedPhongModel.ambient + updatedPhongModel.diffuse +
+  vec4 shadedRGB = (updatedPhongModel.ambient + updatedPhongModel.diffuse +
                     updatedPhongModel.specular) * attenuation;
   return shadedRGB;
 }
 
-vec3 CalcSpotLight(SpotLight spotLight, vec3 unitNormal, vec3 viewDir) {
+vec4 CalcSpotLight(SpotLight spotLight, vec3 unitNormal, vec3 viewDir) {
   // Phong modeling
   vec3 lightDir = normalize(spotLight.position - FRAGPOS);
   PhongModel phongModel = PhongModel(spotLight.ambient, spotLight.diffuse,
                                      spotLight.specular);
-  PhongModel updatedPhongModel = UpdatePhongModel(phongModel, unitNormal,
+  UpdatedPhongModel updatedPhongModel = UpdatePhongModel(phongModel, unitNormal,
                                                   viewDir, lightDir);
 
   // Light attenuation
@@ -149,7 +157,7 @@ vec3 CalcSpotLight(SpotLight spotLight, vec3 unitNormal, vec3 viewDir) {
                                (spotLight.flashCosPhi -
                                 spotLight.flashCosGamma), 0.0, 1.0);
 
-  vec3 shadedRGB = (updatedPhongModel.ambient + (updatedPhongModel.diffuse +
+  vec4 shadedRGB = (updatedPhongModel.ambient + (updatedPhongModel.diffuse +
                     updatedPhongModel.specular) * flashIntensity) *
                     attenuation;
   return shadedRGB;

@@ -10,6 +10,10 @@ const char* SUBJ_FRAGMENT_SHADER_FILE_PATH = "shader/logl2_subj.frag.glsl";
 const char* MARBLE_TEXTURE_FILE_PATH = "asset/marble.jpg";
 const char* METAL_TEXTURE_FILE_PATH = "asset/metal.png";
 
+const char* BLEND_VERTEX_SHADER_FILE_PATH = "shader/logl2_blend.vert.glsl";
+const char* BLEND_FRAGMENT_SHADER_FILE_PATH = "shader/logl2_blend.frag.glsl";
+const char* GRASS_TEXTURE_FILE_PATH = "asset/grass.png";
+
 const float SUBJ_VERTICES[] = {
     // With normals and texture coordinates
     -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f,  // 1-1
@@ -62,6 +66,18 @@ const float FLOOR_VERTICES[] = {
     -5.0f, -0.5f, -5.0f, 1.0f, 0.0f, 0.0f, 0.0f, 2.0f,  // 5
     5.0f,  -0.5f, -5.0f, 1.0f, 0.0f, 0.0f, 2.0f, 2.0f   // 6
 };
+const float GRASS_VERTICES[] = {
+    0.0f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // 1
+    0.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // 2
+    1.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    0.0f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // 4
+    1.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    1.0f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  // 6
+};
+const glm::vec3 GRASS_POSITIONS[] = {
+    glm::vec3(-1.5f, 0.0f, -0.48f), glm::vec3(1.5f, 0.0f, 0.51f),
+    glm::vec3(0.0f, 0.0f, 0.7f), glm::vec3(-0.3f, 0.0f, -2.3f),
+    glm::vec3(0.5f, 0.0f, -0.6f)};
 
 const float SHININESS = 64.0f;
 const glm::vec3 DIR_LIGHT_DIR = glm::vec3(-0.2f, -1.0f, -0.3f),
@@ -76,21 +92,26 @@ const glm::vec3 SPOT_LIGHT_AMBIENT = glm::vec3(0.0f, 0.0f, 0.0f),
                 SPOT_LIGHT_SPECULAR = glm::vec3(1.0f, 1.0f, 1.0f);
 const float ATTN_CONST = 1.0f, ATTN_LIN = 0.09f, ATTN_QUAD = 0.032f;
 const float FLASH_COS_PHI = 12.5f, FLASH_COS_GAMMA = 17.5f;
-glm::vec3 POINT_LIGHT_POSITIONS[] = {
-    glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
-    glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
+glm::vec3 POINT_LIGHT_POSITIONS[] = {glm::vec3(0.7f, 0.2f, 2.0f)};
 
 int main(const int argc, const char* argv[]) {
   // Create window
   liqi::Create(TITLE, FONT_FILE_PATH);
 
   // Build shaders
-  liqi::Shader subj_shader, floor_shader;
+  liqi::Shader subj_shader, blend_shader;
   try {
     subj_shader.Build(SUBJ_VERTEX_SHADER_FILE_PATH,
                       SUBJ_FRAGMENT_SHADER_FILE_PATH);
   } catch (unsigned char error_code) {
     std::cout << "Failed to build shader program for subject" << std::endl;
+    return error_code;
+  }
+  try {
+    blend_shader.Build(BLEND_VERTEX_SHADER_FILE_PATH,
+                       BLEND_FRAGMENT_SHADER_FILE_PATH);
+  } catch (unsigned char error_code) {
+    std::cout << "Failed to build shader program for blending" << std::endl;
     return error_code;
   }
 
@@ -106,9 +127,19 @@ int main(const int argc, const char* argv[]) {
     return -1;
   }
 
+  // Build blending vertices
+  unsigned int grass_vao, grass_vbo;
+  liqi::BuildVertices(&grass_vao, &grass_vbo, GRASS_VERTICES,
+                      sizeof(GRASS_VERTICES));
+  unsigned int grass_texture;
+  if (liqi::SetTexture(&grass_texture, GRASS_TEXTURE_FILE_PATH)) {
+    return -1;
+  }
+
   // Render
   unsigned int n_point_lights =
       sizeof(POINT_LIGHT_POSITIONS) / sizeof(*POINT_LIGHT_POSITIONS);
+  unsigned int n_grasses = sizeof(GRASS_POSITIONS) / sizeof(*GRASS_POSITIONS);
   while (liqi::Render()) {
     // Set uniforms for subject
     subj_shader.Use();
@@ -126,12 +157,9 @@ int main(const int argc, const char* argv[]) {
                              FLASH_COS_PHI, FLASH_COS_GAMMA);
     subj_shader.SetTransform(liqi::view_transform, liqi::proj_transform);
 
-    // Draw subject model
-    liqi::ActiveTexture(&subj_texture, 0);
-    liqi::ActiveTexture(&floor_texture, 1);
-
     // Subject 1 & 2
     liqi::BindVertices(&subj_vao);
+    liqi::ActiveTexture(&subj_texture);
     glm::mat4 model_transform = glm::mat4(1.0f);
     model_transform =
         glm::translate(model_transform, glm::vec3(-1.0f, 0.0f, -1.0f));
@@ -145,8 +173,35 @@ int main(const int argc, const char* argv[]) {
 
     // Floor
     liqi::BindVertices(&floor_vao);
+    liqi::ActiveTexture(&floor_texture);
     subj_shader.SetModel(glm::mat4(1.0f));
     liqi::DrawVertices(sizeof(FLOOR_VERTICES));
+
+    // Blending uniforms
+    blend_shader.Use();
+    blend_shader.SetCamPos(liqi::cam_pos);
+    blend_shader.SetMaterial(0, 1, SHININESS);
+    blend_shader.SetAttnConst(ATTN_CONST, ATTN_LIN, ATTN_QUAD);
+    blend_shader.SetDirLight(DIR_LIGHT_DIR, DIR_LIGHT_AMBIENT,
+                             DIR_LIGHT_DIFFUSE, DIR_LIGHT_SPECULAR);
+    for (unsigned int idx = 0; idx < n_point_lights; idx++) {
+      blend_shader.SetPointLight(POINT_LIGHT_POSITIONS[idx],
+                                 POINT_LIGHT_AMBIENT, POINT_LIGHT_DIFFUSE,
+                                 POINT_LIGHT_SPECULAR, idx);
+    }
+    blend_shader.SetSpotLight(
+        liqi::cam_pos, liqi::cam_front, SPOT_LIGHT_AMBIENT, SPOT_LIGHT_DIFFUSE,
+        SPOT_LIGHT_SPECULAR, FLASH_COS_PHI, FLASH_COS_GAMMA);
+    blend_shader.SetTransform(liqi::view_transform, liqi::proj_transform);
+
+    // Grass
+    liqi::BindVertices(&grass_vao);
+    liqi::ActiveTexture(&grass_texture);
+    for (unsigned int idx = 0; idx < n_grasses; idx++) {
+      model_transform = glm::translate(glm::mat4(1.0f), GRASS_POSITIONS[idx]);
+      blend_shader.SetModel(model_transform);
+      liqi::DrawVertices(sizeof(GRASS_VERTICES));
+    }
   }
 
   // Destroy window
