@@ -34,6 +34,7 @@
 // standard
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -162,10 +163,6 @@ void ExitOptionWindow_() {
 int SetOptionWindow_() {
   // Set option window
   ImGui::Begin("Options");
-  if (ImGui::Button("Exit Options")) {
-    ExitOptionWindow_();
-  }
-  ImGui::SameLine();
   if (ImGui::Button("Exit Program")) {
     glfwSetWindowShouldClose(private_::window_, true);
     return !glfwWindowShouldClose(private_::window_);
@@ -252,6 +249,10 @@ void Create(const char* title, const char* font_file_path) {
 
   // Enable Z-buffer test
   glEnable(GL_DEPTH_TEST);
+
+  // Enable blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   // Flip y-axis of texture when loading
   stbi_set_flip_vertically_on_load(true);

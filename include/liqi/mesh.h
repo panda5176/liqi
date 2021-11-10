@@ -34,6 +34,7 @@
 // standard
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -80,15 +81,21 @@ void BuildVertices(unsigned int* vao_ptr, unsigned int* vbo_ptr,
   glBindVertexArray(0);
 }
 
-int SetTexture(unsigned int* texture_ptr, const char* texture_file_path) {
+int SetTexture(unsigned int* texture_ptr, const char* texture_file_path,
+               const char* wrapping_option = "repeat") {
   // Set texture from read image data
   glGenTextures(1, texture_ptr);
   // glActiveTexture(GL_TEXTURE0);  // Maybe default depends on graphic driver
   glBindTexture(GL_TEXTURE_2D, *texture_ptr);
 
   // Texture wrapping and filtering options
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  unsigned int wrapping_option_uint;
+  if (wrapping_option == "repeat")
+    wrapping_option_uint = GL_REPEAT;
+  else if (wrapping_option == "clamp_edge")
+    wrapping_option_uint = GL_CLAMP_TO_EDGE;
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping_option_uint);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping_option_uint);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 

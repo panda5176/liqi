@@ -73,13 +73,14 @@ void main() {
     shadedRGB += CalcPointLight(POINTLIGHTS[idx], unitNormal, viewDir);
   shadedRGB += CalcSpotLight(SPOTLIGHT, unitNormal, viewDir);
 
+  if(shadedRGB.a < 1.0) discard;
   FRAGCOLOR = shadedRGB;
 }
 
 UpdatedPhongModel UpdatePhongModel(PhongModel phongModel, vec3 unitNormal,
                             vec3 viewDir, vec3 lightDir) {
   // Ambient lighting
-  float ambientStrength = 0.2;
+  float ambientStrength = 1.0;
 
   // Diffuse lighting
   float diffuseStrength = max(dot(unitNormal, lightDir), 0.0);
