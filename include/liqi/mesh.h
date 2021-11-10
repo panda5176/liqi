@@ -80,8 +80,7 @@ void BuildVertices(unsigned int* vao_ptr, unsigned int* vbo_ptr,
   glBindVertexArray(0);
 }
 
-int SetTexture(unsigned int* texture_ptr, const char* texture_file_path,
-               const unsigned int texture_format) {
+int SetTexture(unsigned int* texture_ptr, const char* texture_file_path) {
   // Set texture from read image data
   glGenTextures(1, texture_ptr);
   // glActiveTexture(GL_TEXTURE0);  // Maybe default depends on graphic driver
@@ -100,6 +99,14 @@ int SetTexture(unsigned int* texture_ptr, const char* texture_file_path,
 
   // Generate texture and mipmap
   if (data) {
+    unsigned int texture_format;
+    if (nr_channels == 1)
+      texture_format = GL_RED;
+    else if (nr_channels == 3)
+      texture_format = GL_RGB;
+    else if (nr_channels == 4)
+      texture_format = GL_RGBA;
+
     glTexImage2D(GL_TEXTURE_2D, 0, texture_format, width, height, 0,
                  texture_format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);

@@ -74,4 +74,6 @@ g++ ${object_file} ./include/glad/glad.o ./include/imgui/*.o -o ${output_file} -
 ```
 
 ## Examples in `./source/`
+### Make with `./CMakeLists.txt`
 - [LOGL](source\logl.cc): Learnings from [LearnOpenGL](https://learnopengl.com)
+- [LOGL2](source\logl2.cc): Learnings from [LearnOpenGL](https://learnopengl.com)
