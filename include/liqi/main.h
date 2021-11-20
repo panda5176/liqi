@@ -253,9 +253,6 @@ void Create(const char* title, const char* font_file_path) {
   // Enable blending
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  // Flip y-axis of texture when loading
-  stbi_set_flip_vertically_on_load(true);
 }
 
 bool Render() {

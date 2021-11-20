@@ -20,6 +20,13 @@ const char* BLEND_VERTEX_SHADER_FILE_PATH = "shader/logl2_blend.vert.glsl";
 const char* BLEND_FRAGMENT_SHADER_FILE_PATH = "shader/logl2_blend.frag.glsl";
 const char* WINDOW_TEXTURE_FILE_PATH = "asset/window.png";
 
+const char* SKYBOX_VERTEX_SHADER_FILE_PATH = "shader/logl2_skybox.vert.glsl";
+const char* SKYBOX_FRAGMENT_SHADER_FILE_PATH = "shader/logl2_skybox.frag.glsl";
+std::vector<std::string> SKYBOX_TEXTURE_FILES_PATHS = {
+    "asset/skybox/right.jpg", "asset/skybox/left.jpg",
+    "asset/skybox/top.jpg",   "asset/skybox/bottom.jpg",
+    "asset/skybox/front.jpg", "asset/skybox/back.jpg"};
+
 const float SUBJ_VERTICES[] = {
     // With normals and texture coordinates
     -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f,  // 1-1
@@ -80,6 +87,49 @@ const float GRASS_VERTICES[] = {
     1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // 5
     1.0f, 0.5f,  0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,  // 6
 };
+float SKYBOX_VERTICES[] = {
+    -1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 1
+    -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 2
+    1.0f,  -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    1.0f,  -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 4
+    1.0f,  1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    -1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 6
+
+    -1.0f, -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 1
+    -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 2
+    -1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    -1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 4
+    -1.0f, 1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    -1.0f, -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 6
+
+    1.0f,  -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 1
+    1.0f,  -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 2
+    1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 4
+    1.0f,  1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    1.0f,  -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 6
+
+    -1.0f, -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 1
+    -1.0f, 1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 2
+    1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 4
+    1.0f,  -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    -1.0f, -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 6
+
+    -1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 1
+    1.0f,  1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 2
+    1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 4
+    -1.0f, 1.0f,  1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    -1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 6
+
+    -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 1
+    -1.0f, -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 2
+    1.0f,  -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 3
+    1.0f,  -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 4
+    -1.0f, -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 5
+    1.0f,  -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // 6
+};
 const glm::vec3 GRASS_POSITIONS[] = {
     glm::vec3(-1.5f, 0.0f, -0.48f), glm::vec3(1.5f, 0.0f, 0.51f),
     glm::vec3(0.0f, 0.0f, 0.7f), glm::vec3(-0.3f, 0.0f, -2.3f),
@@ -109,7 +159,7 @@ int main(const int argc, const char* argv[]) {
   liqi::Create(TITLE, FONT_FILE_PATH);
 
   // Build shaders
-  liqi::Shader subj_shader, transparent_shader, blend_shader;
+  liqi::Shader subj_shader, transparent_shader, blend_shader, skybox_shader;
   try {
     subj_shader.Build(SUBJ_VERTEX_SHADER_FILE_PATH,
                       SUBJ_FRAGMENT_SHADER_FILE_PATH);
@@ -117,6 +167,8 @@ int main(const int argc, const char* argv[]) {
                              TRANSPARENT_FRAGMENT_SHADER_FILE_PATH);
     blend_shader.Build(BLEND_VERTEX_SHADER_FILE_PATH,
                        BLEND_FRAGMENT_SHADER_FILE_PATH);
+    skybox_shader.Build(SKYBOX_VERTEX_SHADER_FILE_PATH,
+                        SKYBOX_FRAGMENT_SHADER_FILE_PATH);
   } catch (unsigned char error_code) {
     std::cout << "Failed to build shader program for subject" << std::endl;
     return error_code;
@@ -142,17 +194,35 @@ int main(const int argc, const char* argv[]) {
   liqi::BuildVertices(&window_vao, &window_vbo, GRASS_VERTICES,
                       sizeof(GRASS_VERTICES));
   unsigned int grass_texture, window_texture;
-  if (liqi::SetTexture(&grass_texture, GRASS_TEXTURE_FILE_PATH, "clamp_edge") ||
-      liqi::SetTexture(&window_texture, WINDOW_TEXTURE_FILE_PATH,
+  if (liqi::SetTexture(&grass_texture, GRASS_TEXTURE_FILE_PATH, true,
+                       "clamp_edge") ||
+      liqi::SetTexture(&window_texture, WINDOW_TEXTURE_FILE_PATH, false,
                        "clamp_edge")) {
     return -1;
   }
+
+  // Build skybox
+  unsigned int skybox_vao, skybox_vbo;
+  liqi::BuildVertices(&skybox_vao, &skybox_vbo, SKYBOX_VERTICES,
+                      sizeof(SKYBOX_VERTICES));
+  unsigned int skybox_texture;
+  liqi::LoadCubeMap(&skybox_texture, SKYBOX_TEXTURE_FILES_PATHS);
 
   // Render
   unsigned int n_point_lights =
       sizeof(POINT_LIGHT_POSITIONS) / sizeof(*POINT_LIGHT_POSITIONS);
   unsigned int n_grasses = sizeof(GRASS_POSITIONS) / sizeof(*GRASS_POSITIONS);
   while (liqi::Render()) {
+    // Skybox
+    glDepthFunc(GL_LEQUAL);
+    skybox_shader.Use();
+    skybox_shader.SetTransform(glm::mat4(glm::mat3(liqi::view_transform)),
+                               liqi::proj_transform);
+    liqi::BindVertices(&skybox_vao);
+    liqi::ActiveTexture(&skybox_texture);
+    liqi::DrawVertices(sizeof(SKYBOX_VERTICES));
+    glDepthFunc(GL_LESS);
+
     // Set uniforms for subject
     subj_shader.Use();
     subj_shader.SetCamPos(liqi::cam_pos);

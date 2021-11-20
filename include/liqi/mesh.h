@@ -82,6 +82,7 @@ void BuildVertices(unsigned int* vao_ptr, unsigned int* vbo_ptr,
 }
 
 int SetTexture(unsigned int* texture_ptr, const char* texture_file_path,
+               bool do_flip_vertically = false,
                const char* wrapping_option = "repeat") {
   // Set texture from read image data
   glGenTextures(1, texture_ptr);
@@ -99,10 +100,15 @@ int SetTexture(unsigned int* texture_ptr, const char* texture_file_path,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+  // Flip y-axis of texture when loading
+  if (do_flip_vertically) stbi_set_flip_vertically_on_load(true);
+
   // Load texture image
   int width, height, nr_channels;  // The number of RGB channels
   unsigned char* data =
       stbi_load(texture_file_path, &width, &height, &nr_channels, 0);
+
+  if (do_flip_vertically) stbi_set_flip_vertically_on_load(false);
 
   // Generate texture and mipmap
   if (data) {
@@ -136,6 +142,32 @@ void BindVertices(const unsigned int* vao_ptr) { glBindVertexArray(*vao_ptr); }
 
 void DrawVertices(const unsigned int vertices_size) {
   glDrawArrays(GL_TRIANGLES, 0, vertices_size / 8);
+}
+
+void LoadCubeMap(unsigned int* texture_ptr,
+                 const std::vector<std::string> face_textures_paths) {
+  glGenTextures(1, texture_ptr);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, *texture_ptr);
+
+  int width, height, n_channels;
+  for (unsigned int idx = 0; idx < face_textures_paths.size(); idx++) {
+    unsigned char* data = stbi_load(face_textures_paths[idx].c_str(), &width,
+                                    &height, &n_channels, 0);
+    if (data) {
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + idx, 0, GL_RGB, width,
+                   height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+      stbi_image_free(data);
+    } else {
+      std::cout << "Cubemap texture failed to load: "
+                << face_textures_paths[idx] << std::endl;
+      stbi_image_free(data);
+    }
+  }
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 class Mesh {
